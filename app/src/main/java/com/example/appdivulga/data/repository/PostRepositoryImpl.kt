@@ -2,11 +2,14 @@ package com.example.appdivulga.data.repository
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.util.Log
 import com.example.appdivulga.data.model.BuscarOfertasParams
 import com.example.appdivulga.data.model.CriarPublicacaoParams
 import com.example.appdivulga.data.model.CurtirPublicacaoParams
 import com.example.appdivulga.data.model.DenunciaDto
+import com.example.appdivulga.data.model.EnviarMensagemParams
 import com.example.appdivulga.data.model.LikeRpcResponse
+import com.example.appdivulga.data.model.MensagemRpcResponse
 import com.example.appdivulga.data.model.Post
 import com.example.appdivulga.data.model.PostRpcDto
 import com.example.appdivulga.data.model.PostType
@@ -30,6 +33,7 @@ class PostRepositoryImpl @Inject constructor(
 ) : PostRepository {
 
     companion object {
+        private const val TAG = "PromoNearRepo"
         private const val BUCKET_NAME = "midias_divulgacao"
     }
 
@@ -52,6 +56,8 @@ class PostRepositoryImpl @Inject constructor(
             ).decodeList<PostRpcDto>()
 
             dtoList.map { it.toDomain() }
+        }.onFailure { err ->
+            Log.e(TAG, "Erro ao buscar ofertas próximas", err)
         }
     }
 
@@ -68,6 +74,8 @@ class PostRepositoryImpl @Inject constructor(
                 function = "curtir_publicacao",
                 parameters = params
             ).decodeAs<LikeRpcResponse>()
+        }.onFailure { err ->
+            Log.e(TAG, "Erro ao curtir publicação", err)
         }
     }
 
@@ -84,6 +92,30 @@ class PostRepositoryImpl @Inject constructor(
                 function = "seguir_desseguir_usuario",
                 parameters = params
             ).decodeAs<SeguirRpcResponse>()
+        }.onFailure { err ->
+            Log.e(TAG, "Erro ao seguir/desseguir usuário", err)
+        }
+    }
+
+    override suspend fun enviarMensagemPrivada(
+        remetenteId: String,
+        destinatarioId: String,
+        publicacaoId: String?,
+        texto: String
+    ): Result<MensagemRpcResponse> = withContext(Dispatchers.IO) {
+        runCatching {
+            val params = EnviarMensagemParams(
+                remetenteId = remetenteId,
+                destinatarioId = destinatarioId,
+                publicacaoId = publicacaoId,
+                texto = texto
+            )
+            supabaseClient.postgrest.rpc(
+                function = "enviar_mensagem_privada",
+                parameters = params
+            ).decodeAs<MensagemRpcResponse>()
+        }.onFailure { err ->
+            Log.e(TAG, "Erro ao enviar mensagem privada", err)
         }
     }
 
@@ -92,7 +124,6 @@ class PostRepositoryImpl @Inject constructor(
         fileName: String
     ): Result<String> = withContext(Dispatchers.IO) {
         runCatching {
-            // Compressão e redimensionamento inteligente de imagem antes do upload
             val dataToUpload = compressImageIfNeeded(bytes, fileName)
             val bucket = supabaseClient.storage.from(BUCKET_NAME)
             val uniquePath = "${System.currentTimeMillis()}_$fileName"
@@ -100,11 +131,12 @@ class PostRepositoryImpl @Inject constructor(
                 upsert = true
             }
             bucket.publicUrl(uniquePath)
+        }.onFailure { err ->
+            Log.e(TAG, "Erro ao fazer upload de mídia", err)
         }
     }
 
     private fun compressImageIfNeeded(bytes: ByteArray, fileName: String): ByteArray {
-        // Apenas comprime se for arquivo de imagem (.jpg, .png, .jpeg, .webp)
         val isImage = fileName.contains(".jpg", ignoreCase = true) ||
                       fileName.contains(".jpeg", ignoreCase = true) ||
                       fileName.contains(".png", ignoreCase = true) ||
@@ -141,12 +173,13 @@ class PostRepositoryImpl @Inject constructor(
         tags: List<String>,
         lat: Double,
         lng: Double,
-        expirar24h: Boolean
+        expirar24h: Boolean,
+        vencimentoPromocao: String?
     ): Result<String> = withContext(Dispatchers.IO) {
         runCatching {
             var mediaUrl: String? = null
             if (midiaBytes != null && fileName != null) {
-                mediaUrl = uploadMedia(midiaBytes, fileName).getOrThrow()
+                mediaUrl = uploadMedia(midiaBytes, fileName).getOrNull()
             }
 
             val params = CriarPublicacaoParams(
@@ -159,13 +192,16 @@ class PostRepositoryImpl @Inject constructor(
                 tags = tags,
                 lat = lat,
                 lng = lng,
-                expirar24h = expirar24h
+                expirar24h = expirar24h,
+                vencimentoPromocao = vencimentoPromocao
             )
 
             supabaseClient.postgrest.rpc(
                 function = "criar_publicacao",
                 parameters = params
             ).decodeAs<String>()
+        }.onFailure { err ->
+            Log.e(TAG, "Erro ao criar publicação no Supabase", err)
         }
     }
 
@@ -184,6 +220,8 @@ class PostRepositoryImpl @Inject constructor(
             )
             supabaseClient.postgrest.from("denuncias").insert(denuncia)
             Unit
+        }.onFailure { err ->
+            Log.e(TAG, "Erro ao denunciar publicação", err)
         }
     }
 
@@ -197,6 +235,8 @@ class PostRepositoryImpl @Inject constructor(
                 }
             }
             Unit
+        }.onFailure { err ->
+            Log.e(TAG, "Erro ao excluir publicação", err)
         }
     }
 
@@ -211,6 +251,8 @@ class PostRepositoryImpl @Inject constructor(
             }.decodeSingle<ProfileDto>()
 
             dto.toDomain()
+        }.onFailure { err ->
+            Log.e(TAG, "Erro ao obter perfil", err)
         }
     }
 
@@ -227,6 +269,8 @@ class PostRepositoryImpl @Inject constructor(
                 }
             }
             Unit
+        }.onFailure { err ->
+            Log.e(TAG, "Erro ao atualizar tags", err)
         }
     }
 }

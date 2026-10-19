@@ -5,8 +5,8 @@ import com.example.appdivulga.data.model.Profile
 import com.example.appdivulga.location.Coordinates
 
 enum class FeedMode {
-    RECEBEDOR,  // Feed de ofertas próximas filtrado por interesses
-    DIVULGADOR  // Minhas publicações enviadas
+    RECEBEDOR,
+    DIVULGADOR
 }
 
 data class FeedUiState(
@@ -17,9 +17,10 @@ data class FeedUiState(
     val isRefreshing: Boolean = false,
     val error: String? = null,
     val selectedTags: List<String> = emptyList(),
-    val raioMetros: Double = 10000.0, // Default 10km
+    val raioMetros: Double = 10000.0,
     val activeMode: FeedMode = FeedMode.RECEBEDOR,
     val postToReport: Post? = null,
+    val selectedPostForProfileDialog: Post? = null,
     val showCreateSheet: Boolean = false,
     val hasLocationPermission: Boolean = false
 )

@@ -57,6 +57,7 @@ import com.example.appdivulga.R
 import com.example.appdivulga.ui.components.CreatePostBottomSheet
 import com.example.appdivulga.ui.components.DEFAULT_CATEGORIES
 import com.example.appdivulga.ui.components.DenunciaDialog
+import com.example.appdivulga.ui.components.PerfilDivulgadorDialog
 import com.example.appdivulga.ui.components.PostCard
 import com.example.appdivulga.ui.theme.PromoOrange
 import com.example.appdivulga.ui.theme.TrustBlue
@@ -295,6 +296,7 @@ fun FeedScreen(
                                 currentUserId = viewModel.currentUserId,
                                 onLikeClick = { viewModel.curtirPublicacao(it) },
                                 onFollowClick = { viewModel.toggleSeguirUsuario(it) },
+                                onAuthorClick = { viewModel.abrirPerfilDivulgador(it) },
                                 onReportClick = { viewModel.abrirDialogDenuncia(it) },
                                 onDeleteClick = { viewModel.excluirPublicacao(it) }
                             )
@@ -303,6 +305,17 @@ fun FeedScreen(
                 }
             }
         }
+    }
+
+    // Modal Diálogo de Perfil do Divulgador
+    uiState.selectedPostForProfileDialog?.let { post ->
+        PerfilDivulgadorDialog(
+            post = post,
+            onDismissRequest = { viewModel.fecharPerfilDivulgador() },
+            onSendMessage = { destinatarioId, publicacaoId, texto ->
+                viewModel.enviarMensagemPrivada(destinatarioId, publicacaoId, texto)
+            }
+        )
     }
 
     // Modal Diálogo de Denúncia

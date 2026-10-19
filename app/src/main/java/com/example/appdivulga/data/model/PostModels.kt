@@ -50,6 +50,10 @@ data class Post(
     val autorNome: String,
     val autorAvatarUrl: String? = null,
     val autorPontos: Long = 0,
+    val autorTipoConta: String = "pf",
+    val autorCnpj: String? = null,
+    val autorNomeLoja: String? = null,
+    val autorEnderecoLoja: String? = null,
     val titulo: String,
     val descricao: String? = null,
     val midiaUrl: String? = null,
@@ -62,6 +66,7 @@ data class Post(
     val curtidoPeloUsuario: Boolean = false,
     val seguindoAutor: Boolean = false,
     val status: PostStatus = PostStatus.ATIVA,
+    val vencimentoPromocao: String? = null,
     val dataExpiracao: String? = null,
     val createdAt: String = ""
 ) {
@@ -70,6 +75,18 @@ data class Post(
             String.format("%.1f km", distanciaMetros / 1000)
         } else {
             "${distanciaMetros.toInt()} m"
+        }
+    }
+
+    fun formatVencimentoPromocao(): String? {
+        if (vencimentoPromocao.isNullOrEmpty()) return null
+        return try {
+            val isoFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+            val displayFormat = SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR"))
+            val date = isoFormat.parse(vencimentoPromocao.take(10)) ?: return null
+            "🏷️ Promoção válida até ${displayFormat.format(date)}"
+        } catch (_: Exception) {
+            "🏷️ Oferta por tempo limitado"
         }
     }
 
@@ -103,6 +120,10 @@ data class Profile(
     val id: String,
     val nome: String,
     val avatarUrl: String? = null,
+    val tipoConta: String = "pf",
+    val cnpj: String? = null,
+    val nomeLoja: String? = null,
+    val enderecoLoja: String? = null,
     val pontos: Long = 0,
     val tagsInteresse: List<String> = emptyList()
 )
@@ -115,4 +136,14 @@ data class Comment(
     val usuarioAvatarUrl: String? = null,
     val texto: String,
     val createdAt: String
+)
+
+data class MensagemChat(
+    val id: String,
+    val remetenteId: String,
+    val destinatarioId: String,
+    val publicacaoId: String? = null,
+    val texto: String,
+    val lida: Boolean = false,
+    val createdAt: String = ""
 )

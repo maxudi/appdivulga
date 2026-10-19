@@ -20,22 +20,29 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockReset
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -64,6 +71,7 @@ import com.example.appdivulga.ui.theme.PromoOrange
 import com.example.appdivulga.ui.theme.SuccessGreen
 import com.example.appdivulga.ui.theme.TrustBlue
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     authViewModel: AuthViewModel,
@@ -81,7 +89,6 @@ fun LoginScreen(
             .fillMaxSize()
             .background(NeutralBackground)
     ) {
-        // Fundo com iluminação suave em degradê no topo (sem blocos escuros pesados)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -98,12 +105,10 @@ fun LoginScreen(
         ) {
             Spacer(modifier = Modifier.height(36.dp))
 
-            // Logo Oficial PromoNear Flutuante (sem fundo branco / sem caixa)
             Image(
                 painter = painterResource(id = R.drawable.logo_promonear),
                 contentDescription = "PromoNear Logo",
-                modifier = Modifier
-                    .size(width = 230.dp, height = 85.dp),
+                modifier = Modifier.size(width = 230.dp, height = 85.dp),
                 contentScale = ContentScale.Fit
             )
 
@@ -126,7 +131,6 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Card Limpo do Formulário de Acesso
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(28.dp),
@@ -154,7 +158,7 @@ fun LoginScreen(
                         text = if (uiState.isSignUpMode)
                             "Divulgue ou encontre ofertas perto do seu endereço"
                         else
-                            "Acesse sua conta para ver promoções na sua regiao",
+                            "Acesse sua conta para ver promoções na sua região",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
@@ -162,7 +166,6 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // Mensagem de Sucesso (ex: E-mail de redefinição enviado)
                     uiState.successMessage?.let { msg ->
                         Surface(
                             shape = RoundedCornerShape(12.dp),
@@ -182,20 +185,94 @@ fun LoginScreen(
                         }
                     }
 
-                    // Nome Completo (Modo Cadastro)
+                    // Seletor de Tipo de Conta no Cadastro (PF vs PJ)
                     AnimatedVisibility(visible = uiState.isSignUpMode) {
                         Column {
-                            OutlinedTextField(
-                                value = uiState.nameInput,
-                                onValueChange = { authViewModel.onNameChanged(it) },
-                                label = { Text("Nome Completo ou Nome do Negócio") },
-                                leadingIcon = {
-                                    Icon(Icons.Default.Person, contentDescription = null, tint = TrustBlue)
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                                shape = RoundedCornerShape(14.dp)
+                            Text(
+                                text = "Tipo de Perfil:",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold
                             )
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                                SegmentedButton(
+                                    selected = uiState.tipoContaInput == "pf",
+                                    onClick = { authViewModel.onTipoContaChanged("pf") },
+                                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+                                ) {
+                                    Text("👤 Pessoa Física")
+                                }
+                                SegmentedButton(
+                                    selected = uiState.tipoContaInput == "pj",
+                                    onClick = { authViewModel.onTipoContaChanged("pj") },
+                                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                                ) {
+                                    Text("🏢 Loja / PJ")
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            if (uiState.tipoContaInput == "pj") {
+                                // Campos para Pessoa Jurídica (PJ/Loja)
+                                OutlinedTextField(
+                                    value = uiState.nomeLojaInput,
+                                    onValueChange = { authViewModel.onNomeLojaChanged(it) },
+                                    label = { Text("Nome da Loja / Razão Social *") },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Store, contentDescription = null, tint = TrustBlue)
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(14.dp)
+                                )
+
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                OutlinedTextField(
+                                    value = uiState.cnpjInput,
+                                    onValueChange = { authViewModel.onCnpjChanged(it) },
+                                    label = { Text("CNPJ (Opcional)") },
+                                    placeholder = { Text("00.000.000/0001-00") },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Business, contentDescription = null, tint = TrustBlue)
+                                    },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(14.dp)
+                                )
+
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                OutlinedTextField(
+                                    value = uiState.enderecoLojaInput,
+                                    onValueChange = { authViewModel.onEnderecoLojaChanged(it) },
+                                    label = { Text("Endereço Físico da Loja *") },
+                                    placeholder = { Text("Rua, Número, Bairro, Cidade - UF") },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.LocationOn, contentDescription = null, tint = PromoOrange)
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    maxLines = 2,
+                                    shape = RoundedCornerShape(14.dp)
+                                )
+                            } else {
+                                // Campo Nome Completo para Pessoa Física
+                                OutlinedTextField(
+                                    value = uiState.nameInput,
+                                    onValueChange = { authViewModel.onNameChanged(it) },
+                                    label = { Text("Seu Nome Completo") },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Person, contentDescription = null, tint = TrustBlue)
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(14.dp)
+                                )
+                            }
+
                             Spacer(modifier = Modifier.height(12.dp))
                         }
                     }
@@ -204,7 +281,7 @@ fun LoginScreen(
                     OutlinedTextField(
                         value = uiState.emailInput,
                         onValueChange = { authViewModel.onEmailChanged(it) },
-                        label = { Text("Seu E-mail") },
+                        label = { Text("Seu E-mail *") },
                         placeholder = { Text("seuemail@exemplo.com") },
                         leadingIcon = {
                             Icon(Icons.Default.Email, contentDescription = null, tint = TrustBlue)
@@ -228,7 +305,7 @@ fun LoginScreen(
                     OutlinedTextField(
                         value = uiState.passwordInput,
                         onValueChange = { authViewModel.onPasswordChanged(it) },
-                        label = { Text("Sua Senha") },
+                        label = { Text("Sua Senha *") },
                         leadingIcon = {
                             Icon(Icons.Default.Lock, contentDescription = null, tint = TrustBlue)
                         },
@@ -246,7 +323,6 @@ fun LoginScreen(
                         )
                     )
 
-                    // Botão Esqueceu a Senha (no Login)
                     if (!uiState.isSignUpMode) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -270,7 +346,6 @@ fun LoginScreen(
                         Spacer(modifier = Modifier.height(12.dp))
                     }
 
-                    // Exibição do Erro de Autenticação
                     uiState.errorMessage?.let { errorMsg ->
                         Surface(
                             shape = RoundedCornerShape(12.dp),
@@ -290,7 +365,6 @@ fun LoginScreen(
                                     textAlign = TextAlign.Center
                                 )
 
-                                // Se errou a senha no login, oferecer atalho para recuperar
                                 if (!uiState.isSignUpMode) {
                                     Spacer(modifier = Modifier.height(6.dp))
                                     TextButton(
@@ -313,7 +387,6 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Botão Principal (Laranja PromoNear para ação principal)
                     Button(
                         onClick = { authViewModel.executeAuthAction() },
                         enabled = !uiState.isLoading,
@@ -350,7 +423,6 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Alternar Modo (Entrar vs Cadastre-se)
                     TextButton(onClick = { authViewModel.toggleAuthMode() }) {
                         Text(
                             text = if (uiState.isSignUpMode)
@@ -380,7 +452,6 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Botão Modos Visitante (Navegar Sem Login)
                     OutlinedButton(
                         onClick = { authViewModel.continueAsGuest() },
                         modifier = Modifier
@@ -408,7 +479,6 @@ fun LoginScreen(
         }
     }
 
-    // Modal Diálogo "Esqueceu a Senha"
     if (uiState.showForgotPasswordDialog) {
         AlertDialog(
             onDismissRequest = { authViewModel.closeForgotPasswordDialog() },

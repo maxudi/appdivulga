@@ -78,6 +78,7 @@ fun PostCard(
     currentUserId: String,
     onLikeClick: (String) -> Unit,
     onFollowClick: (String) -> Unit = {},
+    onAuthorClick: (Post) -> Unit = {},
     onReportClick: (Post) -> Unit,
     onDeleteClick: (String) -> Unit,
     modifier: Modifier = Modifier
@@ -120,93 +121,99 @@ fun PostCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Header do Post (Autor + Seguir + Gamificação + Proximidade + Opções)
+            // Header do Post (Clicável para abrir perfil do autor)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Avatar do Autor
-                val avatarUrl = post.autorAvatarUrl
-                if (!avatarUrl.isNullOrEmpty()) {
-                    AsyncImage(
-                        model = avatarUrl,
-                        contentDescription = "Avatar ${post.autorNome}",
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = post.autorNome.take(1).uppercase(),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            fontWeight = FontWeight.Bold
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { onAuthorClick(post) },
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Avatar do Autor
+                    val avatarUrl = post.autorAvatarUrl
+                    if (!avatarUrl.isNullOrEmpty()) {
+                        AsyncImage(
+                            model = avatarUrl,
+                            contentDescription = "Avatar ${post.autorNome}",
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop
                         )
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = post.autorNome,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-
-                        Spacer(modifier = Modifier.width(6.dp))
-
-                        // Selo de Gamificação (Pontos do Autor)
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = PointsGold.copy(alpha = 0.15f),
-                            contentColor = PointsGold
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primaryContainer),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Star,
-                                    contentDescription = "Pontos",
-                                    modifier = Modifier.size(12.dp)
-                                )
-                                Spacer(modifier = Modifier.width(2.dp))
-                                Text(
-                                    text = "${post.autorPontos} pts",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 10.sp
-                                )
-                            }
+                            Text(
+                                text = post.autorNome.take(1).uppercase(),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(2.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        // Badge de Distância por Proximidade
-                        Text(
-                            text = "📍 ${post.formatDistancia()} de você",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Medium
-                        )
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = post.autorNome,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+
+                            Spacer(modifier = Modifier.width(6.dp))
+
+                            // Selo de Gamificação (Pontos do Autor)
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = PointsGold.copy(alpha = 0.15f),
+                                contentColor = PointsGold
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Star,
+                                        contentDescription = "Pontos",
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(2.dp))
+                                    Text(
+                                        text = "${post.autorPontos} pts",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 10.sp
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(2.dp))
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "📍 ${post.formatDistancia()} de você",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 }
 
-                // Botão "Seguir / Seguindo" para o autor do post
+                // Botão "Seguir / Seguindo"
                 if (!isAuthor) {
                     AssistChip(
                         onClick = { onFollowClick(post.autorId) },
@@ -314,7 +321,6 @@ fun PostCard(
                     modifier = Modifier.weight(1f)
                 )
 
-                // Badge de Validade de 24 horas
                 post.formatTempoRestante()?.let { tempoFormatado ->
                     Spacer(modifier = Modifier.width(8.dp))
                     Surface(

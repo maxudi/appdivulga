@@ -10,6 +10,10 @@ data class PostRpcDto(
     @SerialName("autor_nome") val autorNome: String? = null,
     @SerialName("autor_avatar_url") val autorAvatarUrl: String? = null,
     @SerialName("autor_pontos") val autorPontos: Long = 0,
+    @SerialName("autor_tipo_conta") val autorTipoConta: String = "pf",
+    @SerialName("autor_cnpj") val autorCnpj: String? = null,
+    @SerialName("autor_nome_loja") val autorNomeLoja: String? = null,
+    @SerialName("autor_endereco_loja") val autorEnderecoLoja: String? = null,
     @SerialName("titulo") val titulo: String,
     @SerialName("descricao") val descricao: String? = null,
     @SerialName("midia_url") val midiaUrl: String? = null,
@@ -21,6 +25,7 @@ data class PostRpcDto(
     @SerialName("total_comentarios") val totalComentarios: Int = 0,
     @SerialName("curtido_pelo_usuario") val curtidoPeloUsuario: Boolean = false,
     @SerialName("seguindo_autor") val seguindoAutor: Boolean = false,
+    @SerialName("vencimento_promocao") val vencimentoPromocao: String? = null,
     @SerialName("data_expiracao") val dataExpiracao: String? = null,
     @SerialName("created_at") val createdAt: String = ""
 ) {
@@ -31,6 +36,10 @@ data class PostRpcDto(
             autorNome = autorNome ?: "Usuário",
             autorAvatarUrl = autorAvatarUrl,
             autorPontos = autorPontos,
+            autorTipoConta = autorTipoConta,
+            autorCnpj = autorCnpj,
+            autorNomeLoja = autorNomeLoja,
+            autorEnderecoLoja = autorEnderecoLoja,
             titulo = titulo,
             descricao = descricao,
             midiaUrl = midiaUrl,
@@ -43,6 +52,7 @@ data class PostRpcDto(
             curtidoPeloUsuario = curtidoPeloUsuario,
             seguindoAutor = seguindoAutor,
             status = PostStatus.ATIVA,
+            vencimentoPromocao = vencimentoPromocao,
             dataExpiracao = dataExpiracao,
             createdAt = createdAt
         )
@@ -70,6 +80,14 @@ data class SeguirUsuarioParams(
 )
 
 @Serializable
+data class EnviarMensagemParams(
+    @SerialName("p_remetente_id") val remetenteId: String,
+    @SerialName("p_destinatario_id") val destinatarioId: String,
+    @SerialName("p_publicacao_id") val publicacaoId: String? = null,
+    @SerialName("p_texto") val texto: String
+)
+
+@Serializable
 data class LikeRpcResponse(
     @SerialName("sucesso") val sucesso: Boolean = false,
     @SerialName("acao") val acao: String = "",
@@ -87,6 +105,13 @@ data class SeguirRpcResponse(
 )
 
 @Serializable
+data class MensagemRpcResponse(
+    @SerialName("sucesso") val sucesso: Boolean = false,
+    @SerialName("mensagem_id") val mensagemId: String? = null,
+    @SerialName("mensagem") val mensagem: String? = null
+)
+
+@Serializable
 data class CriarPublicacaoParams(
     @SerialName("p_autor_id") val autorId: String,
     @SerialName("p_titulo") val titulo: String,
@@ -97,7 +122,8 @@ data class CriarPublicacaoParams(
     @SerialName("p_tags") val tags: List<String>,
     @SerialName("p_lat") val lat: Double,
     @SerialName("p_lng") val lng: Double,
-    @SerialName("p_expirar_24h") val expirar24h: Boolean = true
+    @SerialName("p_expirar_24h") val expirar24h: Boolean = true,
+    @SerialName("p_vencimento_promocao") val vencimentoPromocao: String? = null
 )
 
 @Serializable
@@ -113,6 +139,10 @@ data class ProfileDto(
     @SerialName("id") val id: String,
     @SerialName("nome") val nome: String,
     @SerialName("avatar_url") val avatarUrl: String? = null,
+    @SerialName("tipo_conta") val tipoConta: String = "pf",
+    @SerialName("cnpj") val cnpj: String? = null,
+    @SerialName("nome_loja") val nomeLoja: String? = null,
+    @SerialName("endereco_loja") val enderecoLoja: String? = null,
     @SerialName("pontos") val pontos: Long = 0,
     @SerialName("tags_interesse") val tagsInteresse: List<String> = emptyList()
 ) {
@@ -121,6 +151,10 @@ data class ProfileDto(
             id = id,
             nome = nome,
             avatarUrl = avatarUrl,
+            tipoConta = tipoConta,
+            cnpj = cnpj,
+            nomeLoja = nomeLoja,
+            enderecoLoja = enderecoLoja,
             pontos = pontos,
             tagsInteresse = tagsInteresse
         )

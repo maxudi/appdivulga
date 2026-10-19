@@ -1,6 +1,7 @@
 package com.example.appdivulga.data.repository
 
 import com.example.appdivulga.data.model.LikeRpcResponse
+import com.example.appdivulga.data.model.MensagemRpcResponse
 import com.example.appdivulga.data.model.Post
 import com.example.appdivulga.data.model.PostType
 import com.example.appdivulga.data.model.Profile
@@ -24,6 +25,13 @@ interface PostRepository {
         seguindoId: String
     ): Result<SeguirRpcResponse>
 
+    suspend fun enviarMensagemPrivada(
+        remetenteId: String,
+        destinatarioId: String,
+        publicacaoId: String?,
+        texto: String
+    ): Result<MensagemRpcResponse>
+
     suspend fun criarPublicacao(
         autorId: String,
         titulo: String,
@@ -35,7 +43,8 @@ interface PostRepository {
         tags: List<String>,
         lat: Double,
         lng: Double,
-        expirar24h: Boolean = true
+        expirar24h: Boolean = true,
+        vencimentoPromocao: String? = null
     ): Result<String>
 
     suspend fun denunciarPublicacao(

@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import javax.inject.Inject
 
 @HiltViewModel
@@ -51,6 +53,22 @@ class AuthViewModel @Inject constructor(
 
     fun onNameChanged(value: String) {
         _uiState.update { it.copy(nameInput = value, errorMessage = null) }
+    }
+
+    fun onTipoContaChanged(value: String) {
+        _uiState.update { it.copy(tipoContaInput = value, errorMessage = null) }
+    }
+
+    fun onCnpjChanged(value: String) {
+        _uiState.update { it.copy(cnpjInput = value, errorMessage = null) }
+    }
+
+    fun onNomeLojaChanged(value: String) {
+        _uiState.update { it.copy(nomeLojaInput = value, errorMessage = null) }
+    }
+
+    fun onEnderecoLojaChanged(value: String) {
+        _uiState.update { it.copy(enderecoLojaInput = value, errorMessage = null) }
     }
 
     fun toggleAuthMode() {
@@ -125,6 +143,13 @@ class AuthViewModel @Inject constructor(
                     supabaseClient.auth.signUpWith(Email) {
                         this.email = email
                         this.password = password
+                        this.data = buildJsonObject {
+                            put("nome", _uiState.value.nameInput.ifBlank { "Divulgador PromoNear" })
+                            put("tipo_conta", _uiState.value.tipoContaInput)
+                            put("cnpj", _uiState.value.cnpjInput)
+                            put("nome_loja", _uiState.value.nomeLojaInput)
+                            put("endereco_loja", _uiState.value.enderecoLojaInput)
+                        }
                     }
                 } else {
                     supabaseClient.auth.signInWith(Email) {

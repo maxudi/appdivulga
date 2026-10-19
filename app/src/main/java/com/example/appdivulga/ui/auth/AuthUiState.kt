@@ -4,6 +4,10 @@ data class AuthUiState(
     val emailInput: String = "",
     val passwordInput: String = "",
     val nameInput: String = "",
+    val tipoContaInput: String = "pf", // "pf" ou "pj"
+    val cnpjInput: String = "",
+    val nomeLojaInput: String = "",
+    val enderecoLojaInput: String = "",
     val isSignUpMode: Boolean = false,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,

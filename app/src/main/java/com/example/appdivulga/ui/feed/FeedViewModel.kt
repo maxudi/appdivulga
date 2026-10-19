@@ -90,7 +90,6 @@ class FeedViewModel @Inject constructor(
                     )
                 }
 
-                // Dispara notificação local se houver nova oferta próxima de autor seguido ou tag relevante
                 val ofertaDestaque = posts.firstOrNull { it.seguindoAutor || it.tags.any { tag -> tags.contains(tag) } }
                 if (ofertaDestaque != null) {
                     notificationHelper.showOfertaProximaNotification(
@@ -114,15 +113,13 @@ class FeedViewModel @Inject constructor(
 
     fun toggleSeguirUsuario(seguindoId: String) {
         viewModelScope.launch {
-            // Atualização Otimista do Estado
             var autorNome = ""
-            var novoStatusSeguindo = false
 
             _uiState.update { state ->
                 val updatedPosts = state.posts.map { post ->
                     if (post.autorId == seguindoId) {
                         autorNome = post.autorNome
-                        novoStatusSeguindo = !post.seguindoAutor
+                        val novoStatusSeguindo = !post.seguindoAutor
                         post.copy(seguindoAutor = novoStatusSeguindo)
                     } else post
                 }
@@ -144,6 +141,25 @@ class FeedViewModel @Inject constructor(
                     carregarOfertasProximas()
                 }
         }
+    }
+
+    fun enviarMensagemPrivada(destinatarioId: String, publicacaoId: String?, texto: String) {
+        viewModelScope.launch {
+            postRepository.enviarMensagemPrivada(
+                remetenteId = currentUserId,
+                destinatarioId = destinatarioId,
+                publicacaoId = publicacaoId,
+                texto = texto
+            )
+        }
+    }
+
+    fun abrirPerfilDivulgador(post: Post) {
+        _uiState.update { it.copy(selectedPostForProfileDialog = post) }
+    }
+
+    fun fecharPerfilDivulgador() {
+        _uiState.update { it.copy(selectedPostForProfileDialog = null) }
     }
 
     fun curtirPublicacao(publicacaoId: String) {
