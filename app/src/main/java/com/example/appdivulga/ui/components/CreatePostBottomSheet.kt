@@ -12,9 +12,12 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -36,9 +39,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -91,7 +91,7 @@ fun CreatePostBottomSheet(
     var titulo by remember { mutableStateOf("") }
     var descricao by remember { mutableStateOf("") }
     var linkExterno by remember { mutableStateOf("") }
-    var selectedPostType by remember { mutableStateOf(PostType.TEXTO) }
+    var selectedPostType by remember { mutableStateOf(PostType.IMAGEM) }
     val selectedTags = remember { mutableStateListOf<String>() }
 
     // Mídia Selecionada da Galeria
@@ -239,108 +239,88 @@ fun CreatePostBottomSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Seletor de Tipo de Conteúdo
+            // Anexo de Imagem/Vídeo da Oferta
             Text(
-                text = "Tipo de Mídia:",
+                text = "Foto ou Vídeo do Produto/Oferta:",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(6.dp))
 
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                PostType.entries.forEachIndexed { index, type ->
-                    SegmentedButton(
-                        selected = (selectedPostType == type),
-                        onClick = { selectedPostType = type },
-                        shape = SegmentedButtonDefaults.itemShape(index = index, count = PostType.entries.size)
-                    ) {
-                        Text(type.name.lowercase().replaceFirstChar { it.uppercase() })
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Área de Mídia com Preview
-            if (selectedPostType != PostType.TEXTO) {
-                if (selectedMediaUri != null) {
-                    Box(
+            if (selectedMediaUri != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                ) {
+                    AsyncImage(
+                        model = selectedMediaUri,
+                        contentDescription = "Mídia da oferta",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                    IconButton(
+                        onClick = {
+                            selectedMediaUri = null
+                            selectedMediaBytes = null
+                            selectedFileName = null
+                            selectedPostType = PostType.TEXTO
+                        },
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(180.dp)
-                            .clip(RoundedCornerShape(14.dp))
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp)
                     ) {
-                        AsyncImage(
-                            model = selectedMediaUri,
-                            contentDescription = "Mídia selecionada",
-                            modifier = Modifier.fillMaxWidth(),
-                            contentScale = ContentScale.Crop
-                        )
-                        IconButton(
-                            onClick = {
-                                selectedMediaUri = null
-                                selectedMediaBytes = null
-                                selectedFileName = null
-                                selectedPostType = PostType.TEXTO
-                            },
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(8.dp)
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(20.dp),
-                                color = Color.Black.copy(alpha = 0.7f)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Remover",
-                                    tint = Color.White,
-                                    modifier = Modifier.padding(6.dp)
-                                )
-                            }
-                        }
-                    }
-                } else {
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                val mediaType = if (selectedPostType == PostType.VIDEO) {
-                                    ActivityResultContracts.PickVisualMedia.VideoOnly
-                                } else {
-                                    ActivityResultContracts.PickVisualMedia.ImageOnly
-                                }
-                                mediaPickerLauncher.launch(
-                                    PickVisualMediaRequest(mediaType)
-                                )
-                            }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = Color.Black.copy(alpha = 0.7f)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.AddAPhoto,
-                                contentDescription = "Abrir Galeria",
-                                tint = PromoOrange
-                            )
-                            Spacer(modifier = Modifier.padding(horizontal = 4.dp))
-                            Text(
-                                text = "Abrir Galeria e escolher ${selectedPostType.name.lowercase()}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = TrustBlue
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Remover",
+                                tint = Color.White,
+                                modifier = Modifier.padding(6.dp)
                             )
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(12.dp))
+            } else {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            mediaPickerLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)
+                            )
+                        }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(20.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AddAPhoto,
+                            contentDescription = "Escolher Foto/Vídeo",
+                            tint = PromoOrange,
+                            modifier = Modifier.size(28.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "Selecionar Foto ou Vídeo da Galeria",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = TrustBlue
+                        )
+                    }
+                }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Campo Link Externo
             OutlinedTextField(
@@ -437,12 +417,13 @@ fun CreatePostBottomSheet(
             Button(
                 onClick = {
                     if (isFormValid) {
+                        val finalType = if (selectedMediaBytes != null) selectedPostType else PostType.TEXTO
                         onSubmitPost(
                             titulo,
                             descricao.ifBlank { null },
                             selectedMediaBytes,
                             selectedFileName,
-                            selectedPostType,
+                            finalType,
                             linkExterno.ifBlank { null },
                             selectedTags.toList(),
                             expirar24h

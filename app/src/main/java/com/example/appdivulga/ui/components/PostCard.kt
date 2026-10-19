@@ -350,31 +350,26 @@ fun PostCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Mídia (Imagem / Vídeo)
+            // Mídia (Imagem ou Vídeo) - Redimensionamento automático com ContentScale.Crop
             val mediaUrl = post.midiaUrl
             if (!mediaUrl.isNullOrEmpty()) {
-                when (post.tipoMidia) {
-                    PostType.IMAGEM -> {
-                        AsyncImage(
-                            model = mediaUrl,
-                            contentDescription = "Mídia da Publicação",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(220.dp)
-                                .clip(RoundedCornerShape(14.dp)),
-                            contentScale = ContentScale.Crop
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                    }
-                    PostType.VIDEO -> {
-                        VideoPlayer(
-                            videoUrl = mediaUrl,
-                            modifier = Modifier.clip(RoundedCornerShape(14.dp))
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                    }
-                    PostType.TEXTO -> { }
+                if (post.tipoMidia == PostType.VIDEO) {
+                    VideoPlayer(
+                        videoUrl = mediaUrl,
+                        modifier = Modifier.clip(RoundedCornerShape(14.dp))
+                    )
+                } else {
+                    AsyncImage(
+                        model = mediaUrl,
+                        contentDescription = "Mídia da Publicação",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(240.dp)
+                            .clip(RoundedCornerShape(14.dp)),
+                        contentScale = ContentScale.Crop
+                    )
                 }
+                Spacer(modifier = Modifier.height(12.dp))
             }
 
             // Link Externo
