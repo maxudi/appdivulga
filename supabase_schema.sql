@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS perfis (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Garantir colunas PF/PJ em bases de dados já existentes
+-- Garante colunas PF/PJ em bases de dados já existentes
 ALTER TABLE perfis ADD COLUMN IF NOT EXISTS tipo_conta TEXT DEFAULT 'pf';
 ALTER TABLE perfis ADD COLUMN IF NOT EXISTS cnpj TEXT;
 ALTER TABLE perfis ADD COLUMN IF NOT EXISTS nome_loja TEXT;
@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS publicacoes (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Garantir colunas em bases já existentes
+-- Garante colunas em bases já existentes
 ALTER TABLE publicacoes ADD COLUMN IF NOT EXISTS vencimento_promocao TIMESTAMPTZ;
 ALTER TABLE publicacoes ADD COLUMN IF NOT EXISTS data_expiracao TIMESTAMPTZ;
 
@@ -174,17 +174,25 @@ AFTER INSERT ON auth.users
 FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- ====================================================================
+-- DROPAR AUTOMATICAMENTE TODAS AS SOBRECARGAS DE FUNÇÕES ANTIGAS
+-- ====================================================================
+DO $$
+DECLARE
+    r RECORD;
+BEGIN
+    FOR r IN
+        SELECT oid::regprocedure AS func_signature
+        FROM pg_proc
+        WHERE proname IN ('criar_publicacao', 'buscar_ofertas_proximas', 'curtir_publicacao', 'seguir_desseguir_usuario', 'enviar_mensagem_privada')
+          AND pronamespace = 'public'::regnamespace
+    LOOP
+        EXECUTE 'DROP FUNCTION IF EXISTS ' || r.func_signature || ' CASCADE;';
+    END LOOP;
+END $$;
+
+-- ====================================================================
 -- FUNÇÕES RPC SQL
 -- ====================================================================
-
--- Dropar assinaturas antigas para permitir atualização dos retornos e parâmetros
-DROP FUNCTION IF EXISTS buscar_ofertas_proximas(double precision, double precision, text[], double precision);
-DROP FUNCTION IF EXISTS seguir_desseguir_usuario(uuid, uuid);
-DROP FUNCTION IF EXISTS curtir_publicacao(uuid, uuid);
-DROP FUNCTION IF EXISTS criar_publicacao(uuid, text, text, text, text, text, text[], double precision, double precision, boolean, timestamptz);
-DROP FUNCTION IF EXISTS criar_publicacao(uuid, text, text, text, text, text, text[], double precision, double precision, boolean);
-DROP FUNCTION IF EXISTS criar_publicacao(uuid, text, text, text, text, text, text[], double precision, double precision);
-DROP FUNCTION IF EXISTS enviar_mensagem_privada(uuid, uuid, uuid, text);
 
 -- 1. RPC: Buscar Ofertas Próximas ORDENADAS POR MAIS NOVAS NO TOPO (DESC)
 CREATE OR REPLACE FUNCTION buscar_ofertas_proximas(
@@ -259,7 +267,6 @@ BEGIN
     FROM publicacoes p
     JOIN perfis prf ON prf.id = p.autor_id
     WHERE p.status = 'ativa'
-      -- O anúncio precisa estar sem expiração de feed (NULL) OU dentro do prazo de 24h ativas
       AND (p.data_expiracao IS NULL OR p.data_expiracao > NOW())
       AND ST_DWithin(p.localizacao, user_point, p_raio_metros)
       AND (
@@ -267,7 +274,6 @@ BEGIN
           OR CARDINALITY(p_tags) = 0
           OR p.tags && p_tags
       )
-    -- ORDENAÇÃO: Mais novas no topo (created_at DESC)
     ORDER BY p.created_at DESC, distancia_metros ASC;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -406,13 +412,13 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION criar_publicacao(
     p_autor_id UUID,
     p_titulo TEXT,
-    p_descricao TEXT,
-    p_midia_url TEXT,
-    p_tipo_midia TEXT,
-    p_link_externo TEXT,
-    p_tags TEXT[],
-    p_lat DOUBLE PRECISION,
-    p_lng DOUBLE PRECISION,
+    p_descricao TEXT DEFAULT NULL,
+    p_midia_url TEXT DEFAULT NULL,
+    p_tipo_midia TEXT DEFAULT 'texto',
+    p_link_externo TEXT DEFAULT NULL,
+    p_tags TEXT[] DEFAULT '{}',
+    p_lat DOUBLE PRECISION DEFAULT 0.0,
+    p_lng DOUBLE PRECISION DEFAULT 0.0,
     p_expirar_24h BOOLEAN DEFAULT TRUE,
     p_vencimento_promocao TIMESTAMPTZ DEFAULT NULL
 )
@@ -421,12 +427,10 @@ DECLARE
     v_id UUID;
     v_expiracao TIMESTAMPTZ;
 BEGIN
-    -- Garante a existência do perfil do autor para evitar erros de FK
     INSERT INTO public.perfis (id, nome, pontos, tags_interesse)
     VALUES (p_autor_id, 'Divulgador PromoNear', 0, '{}')
     ON CONFLICT (id) DO NOTHING;
 
-    -- Se marcado para expirar do feed ativo em 24h
     IF p_expirar_24h THEN
         v_expiracao := NOW() + INTERVAL '24 hours';
     ELSE
@@ -463,6 +467,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+
+-- Recarregar o cache do schema no Supabase Postgrest
+NOTIFY pgrst, 'reload schema';
 
 -- ====================================================================
 -- ROW LEVEL SECURITY (RLS) POLICIES

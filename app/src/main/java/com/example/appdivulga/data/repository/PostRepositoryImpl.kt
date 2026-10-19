@@ -24,6 +24,10 @@ import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
+import java.util.TimeZone
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -196,12 +200,53 @@ class PostRepositoryImpl @Inject constructor(
                 vencimentoPromocao = vencimentoPromocao
             )
 
-            supabaseClient.postgrest.rpc(
-                function = "criar_publicacao",
-                parameters = params
-            ).decodeAs<String>()
+            val result = runCatching {
+                supabaseClient.postgrest.rpc(
+                    function = "criar_publicacao",
+                    parameters = params
+                ).decodeAs<String>()
+            }
+
+            if (result.isSuccess) {
+                result.getOrThrow()
+            } else {
+                val rpcErr = result.exceptionOrNull()
+                Log.w(TAG, "RPC criar_publicacao falhou (${rpcErr?.message}). Usando inserção direta na tabela...", rpcErr)
+
+                runCatching {
+                    supabaseClient.postgrest.from("perfis").insert(
+                        mapOf("id" to autorId, "nome" to "Divulgador PromoNear")
+                    )
+                }
+
+                val expIso = if (expirar24h) {
+                    val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+                    cal.add(Calendar.HOUR_OF_DAY, 24)
+                    SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).format(cal.time)
+                } else null
+
+                val insertMap = mutableMapOf<String, Any?>(
+                    "autor_id" to autorId,
+                    "titulo" to titulo,
+                    "descricao" to descricao,
+                    "midia_url" to mediaUrl,
+                    "tipo_midia" to tipoMidia.name.lowercase(),
+                    "link_externo" to linkExterno,
+                    "tags" to tags,
+                    "localizacao" to "POINT($lng $lat)",
+                    "status" to "ativa",
+                    "data_expiracao" to expIso
+                )
+
+                if (!vencimentoPromocao.isNullOrEmpty()) {
+                    insertMap["vencimento_promocao"] = vencimentoPromocao
+                }
+
+                supabaseClient.postgrest.from("publicacoes").insert(insertMap)
+                "ok"
+            }
         }.onFailure { err ->
-            Log.e(TAG, "Erro ao criar publicação no Supabase", err)
+            Log.e(TAG, "Erro fatal ao criar publicação no Supabase", err)
         }
     }
 
