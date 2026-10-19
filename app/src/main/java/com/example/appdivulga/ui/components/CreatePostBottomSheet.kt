@@ -15,8 +15,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -25,6 +23,7 @@ import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -41,6 +40,8 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -79,7 +80,8 @@ fun CreatePostBottomSheet(
         fileName: String?,
         tipoMidia: PostType,
         linkExterno: String?,
-        tags: List<String>
+        tags: List<String>,
+        expirar24h: Boolean
     ) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -97,10 +99,13 @@ fun CreatePostBottomSheet(
     var selectedMediaBytes by remember { mutableStateOf<ByteArray?>(null) }
     var selectedFileName by remember { mutableStateOf<String?>(null) }
 
+    // Opção de Expiração de 24 Horas no Feed
+    var expirar24h by remember { mutableStateOf(true) }
+
     // Termo de Responsabilidade do Divulgador
     var declaroResponsabilidade by remember { mutableStateOf(false) }
 
-    // Launcher do Photo Picker nativo da Galeria do Android
+    // Launcher do Photo Picker nativo da Galeria
     val mediaPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri: Uri? ->
@@ -114,7 +119,6 @@ fun CreatePostBottomSheet(
                 val ext = if (mimeType?.contains("video") == true) "mp4" else "jpg"
                 selectedFileName = "midia_${System.currentTimeMillis()}.$ext"
 
-                // Define automaticamente o tipo de mídia
                 if (mimeType?.contains("video") == true) {
                     selectedPostType = PostType.VIDEO
                 } else {
@@ -159,7 +163,7 @@ fun CreatePostBottomSheet(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Campo Descrição (com botão de Colar da Área de Transferência)
+            // Campo Descrição
             OutlinedTextField(
                 value = descricao,
                 onValueChange = { descricao = it },
@@ -188,7 +192,56 @@ fun CreatePostBottomSheet(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Seletor de Tipo de Conteúdo (Texto, Imagem, Vídeo)
+            // Configuração de Validade (Expirar em 24h)
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = PromoOrange.copy(alpha = 0.08f),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Timer,
+                            contentDescription = "Temporizador 24h",
+                            tint = PromoOrange
+                        )
+                        Spacer(modifier = Modifier.padding(horizontal = 4.dp))
+                        Column {
+                            Text(
+                                text = "Oferta temporária (24 horas)",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Sairá do feed ativo após 24h (permanecerá salva na sua conta)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Switch(
+                        checked = expirar24h,
+                        onCheckedChange = { expirar24h = it },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = PromoOrange
+                        )
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Seletor de Tipo de Conteúdo
             Text(
                 text = "Tipo de Mídia:",
                 style = MaterialTheme.typography.labelLarge,
@@ -210,7 +263,7 @@ fun CreatePostBottomSheet(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Área de Anexo da Galeria (Com preview se selecionado)
+            // Área de Mídia com Preview
             if (selectedPostType != PostType.TEXTO) {
                 if (selectedMediaUri != null) {
                     Box(
@@ -276,7 +329,7 @@ fun CreatePostBottomSheet(
                                 contentDescription = "Abrir Galeria",
                                 tint = PromoOrange
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.padding(horizontal = 4.dp))
                             Text(
                                 text = "Abrir Galeria e escolher ${selectedPostType.name.lowercase()}",
                                 style = MaterialTheme.typography.bodyMedium,
@@ -289,7 +342,7 @@ fun CreatePostBottomSheet(
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
-            // Campo Link Externo com Botão de Colar (Clipboard)
+            // Campo Link Externo
             OutlinedTextField(
                 value = linkExterno,
                 onValueChange = { linkExterno = it },
@@ -370,7 +423,7 @@ fun CreatePostBottomSheet(
                     checked = declaroResponsabilidade,
                     onCheckedChange = { declaroResponsabilidade = it }
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.padding(horizontal = 4.dp))
                 Text(
                     text = "Declaro responsabilidade legal e veracidade pelo conteúdo anunciado e conformidade com as regras do PromoNear.",
                     style = MaterialTheme.typography.bodySmall,
@@ -391,7 +444,8 @@ fun CreatePostBottomSheet(
                             selectedFileName,
                             selectedPostType,
                             linkExterno.ifBlank { null },
-                            selectedTags.toList()
+                            selectedTags.toList(),
+                            expirar24h
                         )
                     }
                 },

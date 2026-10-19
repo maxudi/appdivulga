@@ -4,6 +4,7 @@ import com.example.appdivulga.data.model.LikeRpcResponse
 import com.example.appdivulga.data.model.Post
 import com.example.appdivulga.data.model.PostType
 import com.example.appdivulga.data.model.Profile
+import com.example.appdivulga.data.model.SeguirRpcResponse
 
 interface PostRepository {
     suspend fun buscarOfertasProximas(
@@ -18,6 +19,11 @@ interface PostRepository {
         usuarioId: String
     ): Result<LikeRpcResponse>
 
+    suspend fun seguirDesseguirUsuario(
+        seguidorId: String,
+        seguindoId: String
+    ): Result<SeguirRpcResponse>
+
     suspend fun criarPublicacao(
         autorId: String,
         titulo: String,
@@ -28,7 +34,8 @@ interface PostRepository {
         linkExterno: String?,
         tags: List<String>,
         lat: Double,
-        lng: Double
+        lng: Double,
+        expirar24h: Boolean = true
     ): Result<String>
 
     suspend fun denunciarPublicacao(

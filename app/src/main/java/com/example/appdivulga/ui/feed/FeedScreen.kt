@@ -294,6 +294,7 @@ fun FeedScreen(
                                 post = post,
                                 currentUserId = viewModel.currentUserId,
                                 onLikeClick = { viewModel.curtirPublicacao(it) },
+                                onFollowClick = { viewModel.toggleSeguirUsuario(it) },
                                 onReportClick = { viewModel.abrirDialogDenuncia(it) },
                                 onDeleteClick = { viewModel.excluirPublicacao(it) }
                             )
@@ -319,7 +320,7 @@ fun FeedScreen(
     if (uiState.showCreateSheet) {
         CreatePostBottomSheet(
             onDismissRequest = { viewModel.fecharSheetCriarPost() },
-            onSubmitPost = { titulo, descricao, midiaBytes, fileName, tipoMidia, linkExterno, tags ->
+            onSubmitPost = { titulo, descricao, midiaBytes, fileName, tipoMidia, linkExterno, tags, expirar24h ->
                 viewModel.criarPublicacao(
                     titulo = titulo,
                     descricao = descricao,
@@ -327,7 +328,8 @@ fun FeedScreen(
                     fileName = fileName,
                     tipoMidia = tipoMidia,
                     linkExterno = linkExterno,
-                    tags = tags
+                    tags = tags,
+                    expirar24h = expirar24h
                 )
             }
         )

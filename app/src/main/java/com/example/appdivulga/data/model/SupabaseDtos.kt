@@ -20,6 +20,8 @@ data class PostRpcDto(
     @SerialName("total_curtidas") val totalCurtidas: Int = 0,
     @SerialName("total_comentarios") val totalComentarios: Int = 0,
     @SerialName("curtido_pelo_usuario") val curtidoPeloUsuario: Boolean = false,
+    @SerialName("seguindo_autor") val seguindoAutor: Boolean = false,
+    @SerialName("data_expiracao") val dataExpiracao: String? = null,
     @SerialName("created_at") val createdAt: String = ""
 ) {
     fun toDomain(): Post {
@@ -39,7 +41,9 @@ data class PostRpcDto(
             totalCurtidas = totalCurtidas,
             totalComentarios = totalComentarios,
             curtidoPeloUsuario = curtidoPeloUsuario,
+            seguindoAutor = seguindoAutor,
             status = PostStatus.ATIVA,
+            dataExpiracao = dataExpiracao,
             createdAt = createdAt
         )
     }
@@ -60,11 +64,25 @@ data class CurtirPublicacaoParams(
 )
 
 @Serializable
+data class SeguirUsuarioParams(
+    @SerialName("p_seguidor_id") val seguidorId: String,
+    @SerialName("p_seguindo_id") val seguindoId: String
+)
+
+@Serializable
 data class LikeRpcResponse(
     @SerialName("sucesso") val sucesso: Boolean = false,
     @SerialName("acao") val acao: String = "",
     @SerialName("total_curtidas") val totalCurtidas: Int = 0,
     @SerialName("pontos_autor") val pontosAutor: Long = 0,
+    @SerialName("mensagem") val mensagem: String? = null
+)
+
+@Serializable
+data class SeguirRpcResponse(
+    @SerialName("sucesso") val sucesso: Boolean = false,
+    @SerialName("acao") val acao: String = "",
+    @SerialName("seguindo") val seguindo: Boolean = false,
     @SerialName("mensagem") val mensagem: String? = null
 )
 
@@ -78,7 +96,8 @@ data class CriarPublicacaoParams(
     @SerialName("p_link_externo") val linkExterno: String? = null,
     @SerialName("p_tags") val tags: List<String>,
     @SerialName("p_lat") val lat: Double,
-    @SerialName("p_lng") val lng: Double
+    @SerialName("p_lng") val lng: Double,
+    @SerialName("p_expirar_24h") val expirar24h: Boolean = true
 )
 
 @Serializable

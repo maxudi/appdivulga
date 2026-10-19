@@ -26,7 +26,7 @@ class FeedViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(FeedUiState())
     val uiState: StateFlow<FeedUiState> = _uiState.asStateFlow()
 
-    // ID do Usuário Ativo (UUID Válido)
+    // ID do Usuário Ativo
     var currentUserId: String = "00000000-0000-0000-0000-000000000001"
         private set
 
@@ -90,12 +90,13 @@ class FeedViewModel @Inject constructor(
                     )
                 }
 
-                val ofertaDestaque = posts.firstOrNull { it.tags.any { tag -> tags.contains(tag) } }
+                // Dispara notificação local se houver nova oferta próxima de autor seguido ou tag relevante
+                val ofertaDestaque = posts.firstOrNull { it.seguindoAutor || it.tags.any { tag -> tags.contains(tag) } }
                 if (ofertaDestaque != null) {
                     notificationHelper.showOfertaProximaNotification(
                         publicacaoId = ofertaDestaque.id,
-                        titulo = ofertaDestaque.titulo,
-                        descricao = ofertaDestaque.descricao ?: "Nova oferta encontrada nas redondezas!",
+                        titulo = if (ofertaDestaque.seguindoAutor) "⭐ Nova oferta de ${ofertaDestaque.autorNome}" else ofertaDestaque.titulo,
+                        descricao = ofertaDestaque.descricao ?: "Confira a nova publicação no PromoNear!",
                         distanciaFormatada = ofertaDestaque.formatDistancia()
                     )
                 }
@@ -108,6 +109,40 @@ class FeedViewModel @Inject constructor(
                     )
                 }
             }
+        }
+    }
+
+    fun toggleSeguirUsuario(seguindoId: String) {
+        viewModelScope.launch {
+            // Atualização Otimista do Estado
+            var autorNome = ""
+            var novoStatusSeguindo = false
+
+            _uiState.update { state ->
+                val updatedPosts = state.posts.map { post ->
+                    if (post.autorId == seguindoId) {
+                        autorNome = post.autorNome
+                        novoStatusSeguindo = !post.seguindoAutor
+                        post.copy(seguindoAutor = novoStatusSeguindo)
+                    } else post
+                }
+                state.copy(posts = updatedPosts)
+            }
+
+            postRepository.seguirDesseguirUsuario(currentUserId, seguindoId)
+                .onSuccess { res ->
+                    if (res.seguindo) {
+                        notificationHelper.showOfertaProximaNotification(
+                            publicacaoId = "follow_$seguindoId",
+                            titulo = "⭐ Agora você segue $autorNome!",
+                            descricao = "Toda vez que $autorNome publicar uma promoção, você receberá aqui no PromoNear.",
+                            distanciaFormatada = "Inscrição Ativa"
+                        )
+                    }
+                }
+                .onFailure {
+                    carregarOfertasProximas()
+                }
         }
     }
 
@@ -187,7 +222,8 @@ class FeedViewModel @Inject constructor(
         fileName: String?,
         tipoMidia: PostType,
         linkExterno: String?,
-        tags: List<String>
+        tags: List<String>,
+        expirar24h: Boolean = true
     ) {
         val loc = _uiState.value.userLocation ?: Coordinates(-23.550520, -46.633308)
 
@@ -205,7 +241,8 @@ class FeedViewModel @Inject constructor(
                 linkExterno = linkExterno,
                 tags = tags,
                 lat = loc.latitude,
-                lng = loc.longitude
+                lng = loc.longitude,
+                expirar24h = expirar24h
             ).onSuccess {
                 carregarOfertasProximas()
             }.onFailure { err ->

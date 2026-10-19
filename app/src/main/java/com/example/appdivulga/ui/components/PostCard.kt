@@ -22,15 +22,19 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -64,6 +68,8 @@ import com.example.appdivulga.data.model.PostType
 import com.example.appdivulga.ui.theme.LikeHeartRed
 import com.example.appdivulga.ui.theme.PausedStatusOrange
 import com.example.appdivulga.ui.theme.PointsGold
+import com.example.appdivulga.ui.theme.PromoOrange
+import com.example.appdivulga.ui.theme.TrustBlue
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -71,6 +77,7 @@ fun PostCard(
     post: Post,
     currentUserId: String,
     onLikeClick: (String) -> Unit,
+    onFollowClick: (String) -> Unit = {},
     onReportClick: (Post) -> Unit,
     onDeleteClick: (String) -> Unit,
     modifier: Modifier = Modifier
@@ -81,7 +88,7 @@ fun PostCard(
 
     val isAuthor = post.autorId == currentUserId
 
-    // Animação de curtida (efeito mola no ícone)
+    // Animação de mola no coração de curtida
     var isLikedAnimTriggered by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
         targetValue = if (isLikedAnimTriggered) 1.3f else 1.0f,
@@ -113,7 +120,7 @@ fun PostCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Header do Post (Autor + Selo Pontos Gamificação + Proximidade + Opções)
+            // Header do Post (Autor + Seguir + Gamificação + Proximidade + Opções)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -158,9 +165,9 @@ fun PostCard(
                             overflow = TextOverflow.Ellipsis
                         )
 
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
 
-                        // Selo de Gamificação (Pontos por Curtidas Recebidas)
+                        // Selo de Gamificação (Pontos do Autor)
                         Surface(
                             shape = RoundedCornerShape(12.dp),
                             color = PointsGold.copy(alpha = 0.15f),
@@ -188,16 +195,46 @@ fun PostCard(
 
                     Spacer(modifier = Modifier.height(2.dp))
 
-                    // Badge de Distância por Proximidade
-                    Text(
-                        text = "📍 ${post.formatDistancia()} de você",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Medium
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Badge de Distância por Proximidade
+                        Text(
+                            text = "📍 ${post.formatDistancia()} de você",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+
+                // Botão "Seguir / Seguindo" para o autor do post
+                if (!isAuthor) {
+                    AssistChip(
+                        onClick = { onFollowClick(post.autorId) },
+                        label = {
+                            Text(
+                                text = if (post.seguindoAutor) "Seguindo" else "Seguir",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = if (post.seguindoAutor) Icons.Default.Check else Icons.Default.PersonAdd,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = if (post.seguindoAutor) TrustBlue.copy(alpha = 0.12f) else PromoOrange.copy(alpha = 0.12f),
+                            labelColor = if (post.seguindoAutor) TrustBlue else PromoOrange,
+                            leadingIconContentColor = if (post.seguindoAutor) TrustBlue else PromoOrange
+                        ),
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.padding(end = 4.dp)
                     )
                 }
 
-                // Botão de Opções / Menu
+                // Menu de Opções
                 Box {
                     IconButton(onClick = { showMenu = true }) {
                         Icon(
@@ -247,7 +284,7 @@ fun PostCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Banner caso o post esteja em moderação / pausado
+            // Banner se pausado em moderação
             if (post.status == PostStatus.PAUSADA_EM_ANALISE) {
                 Surface(
                     shape = RoundedCornerShape(8.dp),
@@ -264,12 +301,36 @@ fun PostCard(
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
-            // Título e Descrição
-            Text(
-                text = post.titulo,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
+            // Título, Tempo de Expiração (24h) e Descrição
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = post.titulo,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f)
+                )
+
+                // Badge de Validade de 24 horas
+                post.formatTempoRestante()?.let { tempoFormatado ->
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = PromoOrange.copy(alpha = 0.12f)
+                    ) {
+                        Text(
+                            text = tempoFormatado,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = PromoOrange,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
 
             val desc = post.descricao
             if (!desc.isNullOrEmpty()) {
@@ -283,7 +344,7 @@ fun PostCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Seção de Mídia (Imagem / Vídeo)
+            // Mídia (Imagem / Vídeo)
             val mediaUrl = post.midiaUrl
             if (!mediaUrl.isNullOrEmpty()) {
                 when (post.tipoMidia) {
@@ -294,7 +355,7 @@ fun PostCard(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(220.dp)
-                                .clip(RoundedCornerShape(12.dp)),
+                                .clip(RoundedCornerShape(14.dp)),
                             contentScale = ContentScale.Crop
                         )
                         Spacer(modifier = Modifier.height(12.dp))
@@ -302,11 +363,11 @@ fun PostCard(
                     PostType.VIDEO -> {
                         VideoPlayer(
                             videoUrl = mediaUrl,
-                            modifier = Modifier.clip(RoundedCornerShape(12.dp))
+                            modifier = Modifier.clip(RoundedCornerShape(14.dp))
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                     }
-                    PostType.TEXTO -> { /* Sem mídia extra */ }
+                    PostType.TEXTO -> { }
                 }
             }
 
@@ -371,13 +432,13 @@ fun PostCard(
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
-            // Barra de Ações Sociais (Curtir + Comentar + Compartilhar)
+            // Ações Sociais (Curtir + Comentar + Compartilhar)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Curtir com animação de mola e contagem
+                // Curtir
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.clickable {
@@ -405,7 +466,7 @@ fun PostCard(
                 // Comentários
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { /* Abre caixa de comentários */ }
+                    modifier = Modifier.clickable { }
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.ChatBubbleOutline,
@@ -424,7 +485,7 @@ fun PostCard(
                 // Compartilhar
                 IconButton(
                     onClick = {
-                        val shareText = "Confira esta oferta no Divulga: \"${post.titulo}\" a apenas ${post.formatDistancia()} de você!"
+                        val shareText = "Confira esta oferta no PromoNear: \"${post.titulo}\" a apenas ${post.formatDistancia()} de você!"
                         val sendIntent = Intent().apply {
                             action = Intent.ACTION_SEND
                             putExtra(Intent.EXTRA_TEXT, shareText)

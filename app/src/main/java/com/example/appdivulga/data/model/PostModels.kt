@@ -1,5 +1,9 @@
 package com.example.appdivulga.data.model
 
+import java.text.SimpleDateFormat
+import java.util.Locale
+import java.util.TimeZone
+
 enum class PostType {
     IMAGEM,
     VIDEO,
@@ -56,7 +60,9 @@ data class Post(
     val totalCurtidas: Int = 0,
     val totalComentarios: Int = 0,
     val curtidoPeloUsuario: Boolean = false,
+    val seguindoAutor: Boolean = false,
     val status: PostStatus = PostStatus.ATIVA,
+    val dataExpiracao: String? = null,
     val createdAt: String = ""
 ) {
     fun formatDistancia(): String {
@@ -64,6 +70,31 @@ data class Post(
             String.format("%.1f km", distanciaMetros / 1000)
         } else {
             "${distanciaMetros.toInt()} m"
+        }
+    }
+
+    fun formatTempoRestante(): String? {
+        if (dataExpiracao.isNullOrEmpty()) return null
+        return try {
+            val isoFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).apply {
+                timeZone = TimeZone.getTimeZone("UTC")
+            }
+            val expDate = isoFormat.parse(dataExpiracao.take(19)) ?: return "⏱️ Expira em 24h"
+            val diffMs = expDate.time - System.currentTimeMillis()
+            if (diffMs <= 0) {
+                "Expirado"
+            } else {
+                val totalMinutes = diffMs / (1000 * 60)
+                val hours = totalMinutes / 60
+                val minutes = totalMinutes % 60
+                if (hours > 0) {
+                    "⏱️ Expira em ${hours}h ${minutes}m"
+                } else {
+                    "⏱️ Expira em ${minutes}m"
+                }
+            }
+        } catch (_: Exception) {
+            "⏱️ Expira em 24h"
         }
     }
 }
