@@ -122,7 +122,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 DROP TRIGGER IF EXISTS trigger_denuncia_pausa_publicacao ON denuncias;
 CREATE TRIGGER trigger_denuncia_pausa_publicacao
 AFTER INSERT ON denuncias
-FOR EACH ROW
+FOR ROW
 EXECUTE FUNCTION trg_pausar_publicacao_denunciada();
 
 -- Trigger Função para Auto-criar Perfil ao registrar Usuário no Supabase Auth
@@ -149,6 +149,13 @@ FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 -- ====================================================================
 -- FUNÇÕES RPC SQL
 -- ====================================================================
+
+-- Remover funções existentes para permitir alteração dos tipos de retorno
+DROP FUNCTION IF EXISTS buscar_ofertas_proximas(double precision, double precision, text[], double precision);
+DROP FUNCTION IF EXISTS seguir_desseguir_usuario(uuid, uuid);
+DROP FUNCTION IF EXISTS curtir_publicacao(uuid, uuid);
+DROP FUNCTION IF EXISTS criar_publicacao(uuid, text, text, text, text, text, text[], double precision, double precision, boolean);
+DROP FUNCTION IF EXISTS criar_publicacao(uuid, text, text, text, text, text, text[], double precision, double precision);
 
 -- 1. RPC: Buscar Ofertas Próximas com Filtro de Validade de 24h e Status de Seguidor
 CREATE OR REPLACE FUNCTION buscar_ofertas_proximas(
