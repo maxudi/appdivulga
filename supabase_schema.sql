@@ -35,6 +35,9 @@ CREATE TABLE IF NOT EXISTS publicacoes (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Garante que a coluna data_expiracao exista em tabelas que já haviam sido criadas previamente
+ALTER TABLE publicacoes ADD COLUMN IF NOT EXISTS data_expiracao TIMESTAMPTZ;
+
 -- Índices de Desempenho Espacial, Expirabilidade e Cobertura de Status/Tags
 CREATE INDEX IF NOT EXISTS idx_publicacoes_localizacao ON publicacoes USING GIST (localizacao);
 CREATE INDEX IF NOT EXISTS idx_publicacoes_tags ON publicacoes USING GIN (tags);
@@ -340,12 +343,10 @@ DECLARE
     v_id UUID;
     v_expiracao TIMESTAMPTZ;
 BEGIN
-    -- Garante a existência do perfil para evitar erro de Chave Estrangeira (FK)
     INSERT INTO public.perfis (id, nome, pontos, tags_interesse)
     VALUES (p_autor_id, 'Divulgador PromoNear', 0, '{}')
     ON CONFLICT (id) DO NOTHING;
 
-    -- Se marcado para expirar em 24 horas, calcula NOW() + 24 horas
     IF p_expirar_24h THEN
         v_expiracao := NOW() + INTERVAL '24 hours';
     ELSE
@@ -412,7 +413,6 @@ DROP POLICY IF EXISTS "Inserir comentário próprio" ON comentarios;
 
 DROP POLICY IF EXISTS "Inserção de denúncias" ON denuncias;
 
--- Criar Políticas RLS
 CREATE POLICY "Perfis visíveis publicamente" ON perfis FOR SELECT USING (true);
 CREATE POLICY "Perfis criação/atualização pública" ON perfis FOR INSERT WITH CHECK (true);
 CREATE POLICY "Usuário atualiza seu próprio perfil" ON perfis FOR UPDATE USING (auth.uid() = id OR true);
